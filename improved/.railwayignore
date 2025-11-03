@@ -1,0 +1,43 @@
+# Training and development files
+train_hybrid_model.py
+test_prediction.py
+*.ipynb
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Data files (keep only if needed, otherwise exclude)
+# train_dataset_cleaned.csv
+# test_dataset_cleaned.csv
+# validation_dataset_cleaned.csv
+
+# Documentation
+*.md
+!README.md
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment files
+.env
+.env.local
+.venv/
+venv/
+env/
+
+# Git
+.git/
+.gitignore
+
+# Render config (not needed for Railway)
+render.yaml
+
+# Old model files (keep only the best one)
+models/hybrid_agricultural_model_final.pth
+models/training_history.json
+

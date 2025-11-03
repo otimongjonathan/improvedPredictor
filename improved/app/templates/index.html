@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agricultural Cost Predictor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .hero-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem 0;
+            margin-bottom: 2rem;
+        }
+        .prediction-form {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .form-label {
+            font-weight: 500;
+        }
+        .calculation-breakdown {
+            background: #f8f9fa;
+            border-radius: 5px;
+            padding: 10px;
+            font-size: 0.85rem;
+        }
+        .form-step {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid #eee;
+        }
+        .step-title {
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        .info-badge {
+            background: #e7f3ff;
+            color: #0066cc;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="hero-section">
+        <div class="container">
+            <h1 class="display-4">Agricultural Input Cost Predictor</h1>
+            <p class="lead">Predict total input costs across regions, districts, and future months using realistic calculations</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="prediction-form">
+                    <h3>Make Prediction</h3>
+                    
+                    <div class="info-badge">
+                        <strong>💡 Note:</strong> Using realistic default input prices based on current market rates for smallholder farmers.
+                    </div>
+                    
+                    <form action="/predict" method="POST">
+                        <div class="form-step">
+                            <h5 class="step-title">Step 1: Select Location & Crop</h5>
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Region *</label>
+                                    <select class="form-select" id="region" name="region" required>
+                                        <option value="">Select Region</option>
+                                        {% for region in regions %}
+                                        <option value="{{ region }}">{{ region }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <small class="text-muted">Affects operational costs</small>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">District *</label>
+                                    <select class="form-select" id="district" name="district" required disabled>
+                                        <option value="">First select region</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Crop *</label>
+                                    <select class="form-select" id="crop" name="crop" required disabled>
+                                        <option value="">First select district</option>
+                                    </select>
+                                    <small class="text-muted">Only crops grown in this district</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-step">
+                            <h5 class="step-title">Step 2: Select Prediction Period</h5>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Months to Predict Ahead</label>
+                                    <select class="form-select" name="months_ahead">
+                                        <option value="1">1 Month</option>
+                                        <option value="3" selected>3 Months</option>
+                                        <option value="6">6 Months</option>
+                                        <option value="12">12 Months</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- REMOVED THE INPUT PRICES SECTION -->
+
+                        <button type="submit" class="btn btn-primary btn-lg mt-3" id="predictBtn" disabled>Predict Costs</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const regionSelect = document.getElementById('region');
+        const districtSelect = document.getElementById('district');
+        const cropSelect = document.getElementById('crop');
+        const predictBtn = document.getElementById('predictBtn');
+
+        function updatePredictButton() {
+            // Enable predict button only when all required fields are filled
+            const regionSelected = regionSelect.value !== '';
+            const districtSelected = districtSelect.value !== '';
+            const cropSelected = cropSelect.value !== '';
+            
+            predictBtn.disabled = !(regionSelected && districtSelected && cropSelected);
+        }
+
+        regionSelect.addEventListener('change', function() {
+            const region = this.value;
+            districtSelect.innerHTML = '<option value="">Select District</option>';
+            cropSelect.innerHTML = '<option value="">Select Crop</option>';
+            cropSelect.disabled = true;
+            predictBtn.disabled = true;
+            
+            if (region) {
+                districtSelect.disabled = false;
+                fetch('/get_districts/' + encodeURIComponent(region))
+                    .then(response => response.json())
+                    .then(districts => {
+                        districtSelect.innerHTML = '<option value="">Select District</option>';
+                        districts.forEach(district => {
+                            const option = document.createElement('option');
+                            option.value = district;
+                            option.textContent = district;
+                            districtSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error fetching districts:', error);
+                        districtSelect.innerHTML = '<option value="">Error loading districts</option>';
+                    });
+            } else {
+                districtSelect.disabled = true;
+                districtSelect.innerHTML = '<option value="">First select region</option>';
+                cropSelect.disabled = true;
+                cropSelect.innerHTML = '<option value="">First select district</option>';
+            }
+        });
+
+        districtSelect.addEventListener('change', function() {
+            const region = regionSelect.value;
+            const district = this.value;
+            cropSelect.innerHTML = '<option value="">Select Crop</option>';
+            predictBtn.disabled = true;
+            
+            if (region && district) {
+                cropSelect.disabled = false;
+                fetch('/get_crops/' + encodeURIComponent(region) + '/' + encodeURIComponent(district))
+                    .then(response => response.json())
+                    .then(crops => {
+                        cropSelect.innerHTML = '<option value="">Select Crop</option>';
+                        if (crops.length > 0) {
+                            crops.forEach(crop => {
+                                const option = document.createElement('option');
+                                option.value = crop;
+                                option.textContent = crop;
+                                cropSelect.appendChild(option);
+                            });
+                        } else {
+                            cropSelect.innerHTML = '<option value="">No crops available for this location</option>';
+                            cropSelect.disabled = true;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching crops:', error);
+                        cropSelect.innerHTML = '<option value="">Error loading crops</option>';
+                    });
+            } else {
+                cropSelect.disabled = true;
+                cropSelect.innerHTML = '<option value="">First select district</option>';
+            }
+        });
+
+        cropSelect.addEventListener('change', updatePredictButton);
+        districtSelect.addEventListener('change', updatePredictButton);
+        regionSelect.addEventListener('change', updatePredictButton);
+    </script>
+</body>
+</html>
